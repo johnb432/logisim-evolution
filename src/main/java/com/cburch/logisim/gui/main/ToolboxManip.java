@@ -94,6 +94,26 @@ class ToolboxManip implements ProjectExplorer.Listener {
           setDefaultTool(lastSelected, proj);
         } else if (source instanceof VhdlEntity vhdl) {
           proj.setCurrentHdlModel(vhdl.getContent());
+          proj.getFrame().viewAttributes(tool);
+        }
+      }
+    }
+  }
+
+  @Override
+  public void renameRequested(ProjectExplorer.Event event) {
+    final var clicked = event.getTarget();
+    if (clicked instanceof ProjectExplorerToolNode clickedNode) {
+      clickedNode.fireNodeChanged();
+      final var baseTool = ((ProjectExplorerToolNode) clicked).getValue();
+      if (baseTool instanceof AddTool tool) {
+        final var source = tool.getFactory();
+        if (source instanceof SubcircuitFactory circFact) {
+          ProjectCircuitActions.doRenameCircuit(proj, circFact.getSubcircuit());
+          proj.getFrame().viewAttributes(tool);
+        } else if (source instanceof VhdlEntity vhdl) {
+          ProjectCircuitActions.doRenameVhdl(proj, vhdl.getContent());
+          proj.getFrame().viewAttributes(tool);
         }
       }
     }
