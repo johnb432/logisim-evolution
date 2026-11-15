@@ -114,7 +114,6 @@ public class WindowMenu extends Menu {
     this.owner = owner;
     WindowMenuManager.addMenu(this);
 
-    final var menuMask = getToolkit().getMenuShortcutKeyMaskEx();
     minimize.setAccelerator(((PrefMonitorKeyStroke)
         AppPreferences.HOTKEY_WINDOW_MINIMIZE).getWithMask(0));
     close.setAccelerator(((PrefMonitorKeyStroke)
@@ -238,7 +237,10 @@ public class WindowMenu extends Menu {
 
   void doMinimize() {
     if (owner != null) {
-      owner.setExtendedState(Frame.ICONIFIED);
+      final var frameState = owner.getExtendedState();
+      if ((frameState & Frame.ICONIFIED) == 0) {
+        owner.setExtendedState(frameState | Frame.ICONIFIED);
+      }
     }
   }
 

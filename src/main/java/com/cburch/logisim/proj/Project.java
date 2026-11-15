@@ -33,6 +33,7 @@ import com.cburch.logisim.util.CollectionUtil;
 import com.cburch.logisim.util.EventSourceWeakSupport;
 import com.cburch.logisim.util.JFileChoosers;
 import com.cburch.logisim.vhdl.base.HdlModel;
+import com.cburch.logisim.vhdl.base.VhdlEntity;
 import com.cburch.logisim.vhdl.sim.VhdlSimulatorTop;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -47,6 +48,21 @@ public class Project {
     redoLog.clear();
     undoMods = 0;
     fireEvent(new ProjectEvent(ProjectEvent.ACTION_COMPLETE, this, null));
+  }
+
+  public boolean isBlank() {
+    final var file = getLogisimFile();
+    final var main = file.getMainCircuit();
+    final var builtInLibs = file.getLoader().getBuiltin().getLibraries();
+
+    return Projects.getOpenProjects().size() == 1 &&
+          !isFileDirty() &&
+          main != null &&
+          main.getComponents().isEmpty() &&
+          file.getLoader().getMainFile() == null &&
+          file.getCircuitCount() == 1 &&
+          file.getVhdlContents().isEmpty() &&
+          file.getLibraries().stream().filter(lib -> !builtInLibs.contains(lib)).toList().isEmpty();
   }
 
   public List<Action> getRedoActions() {
@@ -113,9 +129,26 @@ public class Project {
         if (data instanceof AddTool) {
           Object factory = ((AddTool) data).getFactory();
           if (factory instanceof SubcircuitFactory fact) {
-            if (fact.getSubcircuit() == getCurrentCircuit()) {
+            final var circ = fact.getSubcircuit();
+            recentRootState.remove(circ);
+            allRootStates.removeIf(
+                state -> state.getCircuit() == circ
+            );
+            if (circ == getCurrentCircuit()) {
               setCurrentCircuit(file.getMainCircuit());
+            } else {
+              fireEvent(ProjectEvent.ACTION_SET_STATE, circuitState, circuitState);
             }
+          } else if (factory instanceof VhdlEntity) {
+            setCurrentCircuit(file.getMainCircuit());
+          }
+        }
+      } else if (action == LibraryEvent.ADD_TOOL) {
+        Object data = event.getData();
+        if (data instanceof AddTool addTool && addTool.getFactory() instanceof SubcircuitFactory fact) {
+          final var state = recentRootState.get(fact.getSubcircuit());
+          if (state != null && !allRootStates.contains(state)) {
+            allRootStates.add(state);
           }
         }
       }
@@ -560,11 +593,9 @@ public class Project {
     file.setDirty(true);
   }
 
-  public void setFrame(Frame value) {
-    if (frame == value) return;
-    final var oldValue = frame;
+  public void setFrame(Frame value, int offset) {
     frame = value;
-    Projects.windowCreated(this, oldValue, value);
+    Projects.windowCreated(this, value, offset);
     value.getCanvas().getSelection().addListener(myListener);
   }
 

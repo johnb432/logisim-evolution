@@ -214,9 +214,9 @@ public class VhdlContent extends HdlContent {
   public static boolean labelVHDLInvalidNotify(String label, LogisimFile file) {
     String err = null;
     /* Checking for valid names */
-     if (label.isEmpty()) {
+    if (label.isEmpty()) {
       err = S.get("vhdlNameMissingError");
-     } else if (!label.matches("^[A-Za-z]\\w*") || label.endsWith("_") || label.matches(".*__.*")) {
+    } else if (!label.matches("^[A-Za-z]\\w*") || label.endsWith("_") || label.matches(".*__.*")) {
       err = "\"" + label + "\": " + S.get("vhdlInvalidNameError");
     } else if (Vhdl.VHDL_KEYWORDS.contains(label.toLowerCase(Locale.ROOT))) {
       err = "\"" + label + "\": " + S.get("vhdlKeywordNameError");

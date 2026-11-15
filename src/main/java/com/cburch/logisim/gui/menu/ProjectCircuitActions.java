@@ -266,7 +266,7 @@ public class ProjectCircuitActions {
       String initialValue = name;
       while (true) {
         final var newName = promptForNewName(proj.getFrame(), proj.getLogisimFile(), initialValue, false);
-        if (newName == null) break;
+        if (newName == null || newName.equals(name)) break;
 
         if (!name.equalsIgnoreCase(newName) && labelInvalidNotify(newName, proj)) {
           initialValue = newName;
@@ -281,6 +281,7 @@ public class ProjectCircuitActions {
         } catch (CircuitException ex) {
           OptionPane.showMessageDialog(proj.getFrame(), ex.getMessage());
         }
+        
         break;
       }
     }
@@ -293,14 +294,14 @@ public class ProjectCircuitActions {
       String initialValue = name;
       while (true) {
         final var newName = promptForNewName(proj.getFrame(), proj.getLogisimFile(), initialValue, true);
-        if (newName == null) break;
+        if (newName == null || newName.equals(name)) break;
 
         if (!name.equalsIgnoreCase(newName) && VhdlContent.labelVHDLInvalidNotify(newName, proj.getLogisimFile())) {
           initialValue = newName;
           continue;
         }
 
-        proj.doAction(ToolAttributeAction.create(tool, VhdlEntity.nameAttr, newName));
+        proj.doAction(ToolAttributeAction.create(tool, VhdlEntity.NAME_ATTR, newName));
         break;
       }
     }

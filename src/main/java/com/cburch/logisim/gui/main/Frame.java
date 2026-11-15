@@ -46,6 +46,7 @@ import com.cburch.logisim.proj.ProjectListener;
 import com.cburch.logisim.proj.Projects;
 import com.cburch.logisim.tools.AddTool;
 import com.cburch.logisim.tools.Tool;
+import com.cburch.logisim.util.FontUtil;
 import com.cburch.logisim.util.HorizontalSplitPane;
 import com.cburch.logisim.util.JFileChoosers;
 import com.cburch.logisim.util.LocaleListener;
@@ -88,6 +89,7 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -121,7 +123,6 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
   private final JPanel mainPanelSuper;
   private final CardPanel mainPanel;
   private final UnifiedHeaderBar headerBar;
-  private double savedSidebarFraction = 0.25;
   // left-side elements
   private final JTabbedPane topTab;
   private final JTabbedPane bottomTab;
@@ -146,7 +147,7 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
   private Double lastFraction = AppPreferences.WINDOW_RIGHT_SPLIT.get();
   private final RegTabContent regTabContent;
 
-  public Frame(Project project) {
+  public Frame(Project project, int offset) {
     super(project);
     this.project = project;
 
@@ -215,6 +216,8 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
     if (appFont != null && !appFont.isBlank()) {
       final var fontStyle = AppPreferences.getPreferredFontStyle(appFont);
       topTab.setFont(new Font(appFont, fontStyle, 9));
+    } else {
+      topTab.setFont(topTab.getFont().deriveFont(Font.BOLD));
     }
     topTab.add(explPanel);
     topTab.add(simPanel);
@@ -267,7 +270,7 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
     menuListener.register(mainPanel);
     keyboardToolSelection = KeyboardToolSelection.register(toolbar);
 
-    project.setFrame(this);
+    project.setFrame(this, offset);
     if (project.getTool() == null) {
       project.setTool(project.getOptions().getToolbarData().getFirstTool());
     }
@@ -604,15 +607,15 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
    */
   private void buildTitleString() {
     final var circuit = project.getCurrentCircuit();
+    final var hdl = project.getCurrentHdl();
     final var name = project.getLogisimFile().getName();
     final var title = new StringBuilder();
 
     title
-        .append(project.isFileDirty() ? (Main.DIRTY_MARKER + " ") : "")
+        .append((project.isFileDirty()) ? FontUtil.getDisplayableString(UIManager.getFont("Label.font"), Main.DIRTY_MARKER_UNICODE, Main.DIRTY_MARKER) : "")
         .append(
-            (circuit != null)
-                ? S.get("titleCircFileKnown", circuit.getName(), name)
-                : S.get("titleFileKnown", name))
+            (circuit != null) ? S.get("titleCircFileKnown", circuit.getName(), name) :
+              (hdl != null) ? S.get("titleCircFileKnown", hdl.getName(), name) : S.get("titleFileKnown", name))
         .append(" · ")
         .append(BuildInfo.displayName);
 
@@ -782,13 +785,7 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
   }
 
   public void toggleSidebar() {
-    double current = mainRegion.getFraction();
-    if (current > 0.05) {
-      savedSidebarFraction = current;
-      mainRegion.setFraction(0.0);
-    } else {
-      mainRegion.setFraction(savedSidebarFraction > 0.05 ? savedSidebarFraction : 0.25);
-    }
+    setExplorerVisible(!isExplorerVisible());
   }
 
   private void placeToolbar() {
@@ -1062,7 +1059,7 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
           if (appearance != null) {
             appearance.setCircuit(project, project.getCircuitState());
           }
-          viewAttributes(project.getTool());
+          viewCircuitAttributes();
         } else if (event.getData() instanceof HdlModel model) {
           setHdlEditorView(model);
           viewCircuitAttributes();
@@ -1075,11 +1072,13 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
           // for startup
           return;
         }
-        final var oldTool = (Tool) event.getOldData();
-        final var newTool = (Tool) event.getData();
         if (!getEditorView().equals(EDIT_APPEARANCE)) {
-          viewAttributes(oldTool, newTool, false);
+          final var oldTool = (Tool) event.getOldData();
+          final var newTool = (Tool) event.getData();
+          viewAttributes(oldTool, newTool, true);
         }
+      } else if (action == ProjectEvent.UNDO_COMPLETE || action == ProjectEvent.REDO_COMPLETE) {
+        viewAttributes(project.getTool(), true);
       }
     }
 

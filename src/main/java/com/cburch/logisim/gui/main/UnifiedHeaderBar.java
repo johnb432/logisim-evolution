@@ -9,11 +9,12 @@
 
 package com.cburch.logisim.gui.main;
 
-import com.cburch.logisim.circuit.Circuit;
-import com.cburch.logisim.circuit.CircuitEvent;
-import com.cburch.logisim.circuit.CircuitListener;
 import com.cburch.logisim.circuit.Simulator;
+import com.cburch.logisim.circuit.SubcircuitFactory;
+
 import static com.cburch.logisim.gui.Strings.S;
+
+import com.cburch.logisim.gui.generic.ProjectExplorer;
 import com.cburch.logisim.gui.icons.symbolic.ChevronDownIcon;
 import com.cburch.logisim.gui.icons.symbolic.PauseIcon;
 import com.cburch.logisim.gui.icons.symbolic.PlayIcon;
@@ -25,14 +26,14 @@ import com.cburch.logisim.gui.icons.symbolic.TickFullIcon;
 import com.cburch.logisim.gui.icons.symbolic.TickHalfIcon;
 import com.cburch.logisim.gui.icons.symbolic.UndoIcon;
 import com.cburch.logisim.gui.icons.symbolic.VectorBaseIcon;
-import com.cburch.logisim.gui.prefs.PreferencesFrame;
 import com.cburch.logisim.prefs.AppPreferences;
 import com.cburch.logisim.proj.Project;
-import com.cburch.logisim.proj.ProjectActions;
 import com.cburch.logisim.proj.ProjectEvent;
 import com.cburch.logisim.proj.ProjectListener;
+import com.cburch.logisim.util.FontUtil;
 import com.cburch.logisim.util.LocaleListener;
 import com.cburch.logisim.util.LocaleManager;
+import com.cburch.logisim.vhdl.base.VhdlEntity;
 import com.formdev.flatlaf.FlatClientProperties;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -62,9 +63,6 @@ import javax.swing.JToggleButton;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-
-import com.cburch.logisim.proj.ProjectListener;
-import com.cburch.logisim.proj.ProjectEvent;
 
 /**
  * Unified HeaderBar for Logisim-Evolution.
@@ -224,9 +222,11 @@ public class UnifiedHeaderBar extends JPanel implements LocaleListener, ProjectL
     simPill.setOpaque(false);
     simPill.putClientProperty(FlatClientProperties.STYLE,
         "arc: 6; background: $Group.background; border: 1,1,1,1,$Component.borderColor,1,6;");
-
-    simStatusLabel = new JLabel("● " + S.get("headerSimPaused"));
-    simStatusLabel.setFont(simStatusLabel.getFont().deriveFont(Font.BOLD, (float) AppPreferences.getScaled(11)));
+    
+    simStatusLabel = new JLabel();
+    final var font = simStatusLabel.getFont().deriveFont(Font.BOLD, (float) AppPreferences.getScaled(11));
+    simStatusLabel.setFont(font);
+    simStatusLabel.setText(FontUtil.getDisplayableString(font, ProjectExplorer.CURRENT_VIEW_SUFFIX_UNICODE, ProjectExplorer.CURRENT_VIEW_SUFFIX) + " " + S.get("headerSimPaused"));
     simStatusLabel.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 4));
     simStatusLabel.setForeground(getPausedColor());
 
@@ -321,7 +321,7 @@ public class UnifiedHeaderBar extends JPanel implements LocaleListener, ProjectL
   private void handleResponsiveLayout() {
     int w = getWidth();
     if (w < 820) {
-      simStatusLabel.setText("●");
+      simStatusLabel.setText(FontUtil.getDisplayableString(simStatusLabel.getFont(), ProjectExplorer.CURRENT_VIEW_SUFFIX_UNICODE, ProjectExplorer.CURRENT_VIEW_SUFFIX));
       freqButton.setText("");
     } else {
       updateSimControls();
@@ -345,16 +345,6 @@ public class UnifiedHeaderBar extends JPanel implements LocaleListener, ProjectL
     }
 
     project.addProjectListener(this);
-
-    Circuit circ = project.getCurrentCircuit();
-    if (circ != null) {
-      circ.addCircuitListener(new CircuitListener() {
-        @Override
-        public void circuitChanged(CircuitEvent event) {
-          SwingUtilities.invokeLater(UnifiedHeaderBar.this::updateUndoRedo);
-        }
-      });
-    }
   }
 
   public void updateState() {
@@ -366,8 +356,9 @@ public class UnifiedHeaderBar extends JPanel implements LocaleListener, ProjectL
   public void updateTitle() {
     if (circuitPickerButton == null || project == null)
       return;
-    Circuit current = project.getCurrentCircuit();
-    String name = (current != null) ? current.getName() : "main";
+    final var circ = project.getCurrentCircuit();
+    final var hdl = project.getCurrentHdl();
+    final var name = circ != null ? circ.getName() : hdl != null ? hdl.getName() : "main";
     circuitPickerButton.setText(name);
     circuitPickerButton.repaint();
   }
@@ -391,17 +382,18 @@ public class UnifiedHeaderBar extends JPanel implements LocaleListener, ProjectL
         playPauseButton.setToolTipText(S.get("headerSimAutoTickRun") + " (Ctrl+K)");
       }
 
-      String detailedMsg = sim.getSingleStepMessage();
+      final var runningString = FontUtil.getDisplayableString(simStatusLabel.getFont(), ProjectExplorer.CURRENT_VIEW_SUFFIX_UNICODE, ProjectExplorer.CURRENT_VIEW_SUFFIX);
+      final var detailedMsg = sim.getSingleStepMessage();
       if (oscillating) {
-        simStatusLabel.setText(getWidth() < 820 ? "●" : "● " + S.get("headerSimOscillating"));
+        simStatusLabel.setText(getWidth() < 820 ? runningString : runningString + " " + S.get("headerSimOscillating"));
         simStatusLabel.setForeground(COLOR_HALTED);
         simStatusLabel.setToolTipText(detailedMsg.isEmpty() ? S.get("headerSimOscillationDetected") : detailedMsg);
       } else if (ticking) {
-        simStatusLabel.setText(getWidth() < 820 ? "●" : "● " + S.get("headerSimRunning"));
+        simStatusLabel.setText(getWidth() < 820 ? runningString : runningString + " " + S.get("headerSimRunning"));
         simStatusLabel.setForeground(COLOR_RUNNING);
         simStatusLabel.setToolTipText(S.get("headerSimRunningTip"));
       } else {
-        simStatusLabel.setText(getWidth() < 820 ? "●" : "● " + S.get("headerSimPaused"));
+        simStatusLabel.setText(getWidth() < 820 ? runningString : runningString + " " + S.get("headerSimPaused"));
         simStatusLabel.setForeground(getPausedColor());
         simStatusLabel.setToolTipText(detailedMsg.isEmpty() ? S.get("headerSimPausedTip") : detailedMsg);
       }
@@ -448,13 +440,25 @@ public class UnifiedHeaderBar extends JPanel implements LocaleListener, ProjectL
   // ---------------------------------------------------------------------------
   private void showCircuitMenu(JButton parent) {
     JPopupMenu menu = new JPopupMenu();
-    for (Circuit c : project.getLogisimFile().getCircuits()) {
-      JMenuItem item = new JMenuItem(c.getName());
-      if (c == project.getCurrentCircuit()) {
-        item.setFont(item.getFont().deriveFont(Font.BOLD));
+    for (final var tool : project.getLogisimFile().getTools()) {
+      final var fact = tool.getFactory();
+      if (fact instanceof SubcircuitFactory factory) {
+        final var circ = factory.getSubcircuit();
+        JMenuItem item = new JMenuItem(factory.getSubcircuit().getName());
+        if (project.getCurrentCircuit() == circ) {
+          item.setFont(item.getFont().deriveFont(Font.BOLD));
+        }
+        item.addActionListener(e -> project.setCurrentCircuit(circ));
+        menu.add(item);
+      } else if (fact instanceof VhdlEntity vhdl) {
+        final var hdl = vhdl.getContent();
+        JMenuItem item = new JMenuItem(hdl.getName());
+        if (project.getCurrentHdl() == hdl) {
+          item.setFont(item.getFont().deriveFont(Font.BOLD));
+        }
+        item.addActionListener(e -> project.setCurrentHdlModel(hdl));
+        menu.add(item);
       }
-      item.addActionListener(e -> project.setCurrentCircuit(c));
-      menu.add(item);
     }
     menu.show(parent, 0, parent.getHeight() + 2);
   }
@@ -642,8 +646,10 @@ public class UnifiedHeaderBar extends JPanel implements LocaleListener, ProjectL
         || act == ProjectEvent.REDO_COMPLETE) {
       if (SwingUtilities.isEventDispatchThread()) {
         updateUndoRedo();
+        updateTitle();
       } else {
         SwingUtilities.invokeLater(this::updateUndoRedo);
+        SwingUtilities.invokeLater(this::updateTitle);
       }
     }
   }
