@@ -331,7 +331,7 @@ public class ProjectExplorer extends JTree implements LocaleListener {
             final var lib = libNode.getValue();
             var text = "";
             if (lib.isDirty()) {
-              text = FontUtil.getDisplayableString(plainFont, Main.DIRTY_MARKER_UNICODE, Main.DIRTY_MARKER);
+              text = FontUtil.getDisplayableString(plainFont, Main.DIRTY_MARKER_UNICODE, Main.DIRTY_MARKER) + " ";
             }
             text += lib.getDisplayName();
 

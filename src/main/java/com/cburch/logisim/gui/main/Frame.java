@@ -612,7 +612,7 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
     final var title = new StringBuilder();
 
     title
-        .append((project.isFileDirty()) ? FontUtil.getDisplayableString(UIManager.getFont("Label.font"), Main.DIRTY_MARKER_UNICODE, Main.DIRTY_MARKER) : "")
+        .append((project.isFileDirty()) ? FontUtil.getDisplayableString(UIManager.getFont("Label.font"), Main.DIRTY_MARKER_UNICODE, Main.DIRTY_MARKER) + " " : "")
         .append(
             (circuit != null) ? S.get("titleCircFileKnown", circuit.getName(), name) :
               (hdl != null) ? S.get("titleCircFileKnown", hdl.getName(), name) : S.get("titleFileKnown", name))
