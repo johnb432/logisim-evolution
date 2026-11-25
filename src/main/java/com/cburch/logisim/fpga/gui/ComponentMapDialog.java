@@ -245,8 +245,7 @@ public class ComponentMapDialog
   private void load() {
     final var fc = JFileChoosers.createAt(new File(oldDirectory));
     fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-    // FIXME: hardcoded string
-    fc.setDialogTitle("Choose XML board description file to use");
+    fc.setDialogTitle(S.get("BoardMapLoadTitle"));
     fc.setFileFilter(XmlFileFilter.XML_FILTER);
     fc.setAcceptAllFileFilterUsed(false);
     panel.setVisible(false);
@@ -262,10 +261,9 @@ public class ComponentMapDialog
         panel.setVisible(true);
         boardPicture.update();
       } else {
-        // FIXME: hardcoded string
         OptionPane.showMessageDialog(
-            null, parse.getError(result), "Error", OptionPane.ERROR_MESSAGE);
         panel.setVisible(true);
+            panel.getContentPane(), parse.getError(result), S.get("BoardMapLoadError"), OptionPane.ERROR_MESSAGE);
       }
     }
   }
