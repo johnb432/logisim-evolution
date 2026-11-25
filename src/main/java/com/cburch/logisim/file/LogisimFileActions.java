@@ -171,9 +171,9 @@ public final class LogisimFileActions {
               final var circ1 = LibraryTools.getCircuitFromLibs(source, circName);
               if (circ1 == null) {
                 OptionPane.showMessageDialog(
-                    null,
+                    mergelib.getMainCircuit().getProject().getFrame(),
                     "Fatal internal error: Cannot find a referenced circuit",
-                    "LogosimFileAction:",
+                    "LogisimFileAction:",
                     OptionPane.ERROR_MESSAGE);
                 canContinue = false;
               } else {
