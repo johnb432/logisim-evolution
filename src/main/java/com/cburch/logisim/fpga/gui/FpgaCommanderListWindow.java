@@ -13,6 +13,7 @@ import com.cburch.contracts.BaseListDataListenerContract;
 import com.cburch.contracts.BaseWindowListenerContract;
 import com.cburch.logisim.fpga.data.FpgaCommanderListModel;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.WindowEvent;
 import javax.swing.JFrame;
@@ -34,12 +35,13 @@ public class FpgaCommanderListWindow extends JFrame
   private final JScrollPane textMessages;
 
   public FpgaCommanderListWindow(
-      String Title, Color fg, boolean count, FpgaCommanderListModel model) {
+      String Title, Color fg, boolean count, FpgaCommanderListModel model, java.awt.Component parent) {
     super((count) ? Title + " (" + model.getCountNr() + ")" : Title);
     this.Title = Title;
     setResizable(true);
     setAlwaysOnTop(false);
     setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+    getContentPane().setPreferredSize(new Dimension(parent.getWidth(), 400));
     final var bg = UIManager.getColor("List.background");
 
     textArea.setBackground(bg);
@@ -56,11 +58,12 @@ public class FpgaCommanderListWindow extends JFrame
     textMessages.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
     textMessages.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
     add(textMessages);
-    setLocationRelativeTo(null);
-    pack();
     addWindowListener(this);
     this.count = count;
     this.model = model;
+    
+    pack();
+    setLocationRelativeTo(parent);
   }
 
   public boolean isActivated() {

@@ -12,6 +12,7 @@ package com.cburch.logisim.fpga.gui;
 import com.cburch.contracts.BaseKeyListenerContract;
 import com.cburch.contracts.BaseWindowListenerContract;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Rectangle;
@@ -33,12 +34,13 @@ public class FpgaCommanderTextWindow extends JFrame
   private boolean IsActive = false;
   private final boolean count;
 
-  public FpgaCommanderTextWindow(String Title, Color fg, boolean count) {
+  public FpgaCommanderTextWindow(String Title, Color fg, boolean count, java.awt.Component parent) {
     super((count) ? Title + " (0)" : Title);
     this.Title = Title;
     setResizable(true);
     setAlwaysOnTop(false);
     setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+    getContentPane().setPreferredSize(new Dimension(parent.getWidth(), 400));
     final var bg = UIManager.getColor("TextArea.background");
     textArea = new JTextArea(25, 80);
     ((DefaultCaret) textArea.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
@@ -53,12 +55,15 @@ public class FpgaCommanderTextWindow extends JFrame
     textMessages.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
     textMessages.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
     add(textMessages);
-    setLocationRelativeTo(null);
     textArea.addKeyListener(this);
-    pack();
     addWindowListener(this);
     this.count = count;
     FontSize = textMessages.getFont().getSize();
+
+    pack();
+    setLocationRelativeTo(parent);
+    toFront();
+    setVisible(true);
   }
 
   public boolean isActivated() {

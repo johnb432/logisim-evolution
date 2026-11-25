@@ -15,7 +15,6 @@ import com.cburch.logisim.gui.generic.OptionPane;
 import com.cburch.logisim.gui.prefs.PreferencesFrame;
 import com.cburch.logisim.prefs.AppPreferences;
 import com.cburch.logisim.prefs.PrefMonitorKeyStroke;
-import com.cburch.logisim.proj.Project;
 import com.cburch.logisim.proj.ProjectActions;
 import com.cburch.logisim.proj.Projects;
 import com.cburch.logisim.util.MacCompatibility;
@@ -178,7 +177,7 @@ class MenuFile extends Menu implements ActionListener {
         frame.dispose();
       }
     } else if (src == prefs) {
-      PreferencesFrame.showPreferences();
+      PreferencesFrame.showPreferences(proj.getFrame());
     } else if (src == quit) {
       ProjectActions.doQuit();
     } else if (proj != null) {

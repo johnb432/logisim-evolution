@@ -56,12 +56,12 @@ public class FpgaReportTabbedPane extends JTabbedPane
   private final JList<Object> warnings;
   private final JComponent panelWarnings;
   private final FpgaCommanderListModel warningsList;
-  private final FpgaCommanderListWindow warningsWindow;
+  private FpgaCommanderListWindow warningsWindow;
 
   private final JList<Object> errors;
   private final JComponent panelErrors;
   private final FpgaCommanderListModel errorsList;
-  private final FpgaCommanderListWindow errorsWindow;
+  private FpgaCommanderListWindow errorsWindow;
 
   private FpgaCommanderTextWindow consoleWindow;
   private final JTextArea textAreaConsole;
@@ -115,11 +115,6 @@ public class FpgaReportTabbedPane extends JTabbedPane
     panelWarnings.add(textWarnings);
     panelWarnings.setName("Warnings (0)");
     add(panelWarnings, warningsTabIndex);
-    warningsWindow =
-        new FpgaCommanderListWindow("FPGACommander: Warnings", Color.ORANGE, true, warningsList);
-    warningsWindow.setSize(new Dimension(740, 400));
-    warningsWindow.addWindowListener(this);
-    warningsWindow.getListObject().addMouseListener(this);
 
     /* here we setup the Error window */
     errorsList = new FpgaCommanderListModel(false);
@@ -141,11 +136,6 @@ public class FpgaReportTabbedPane extends JTabbedPane
     panelErrors.add(textErrors);
     panelErrors.setName("Errors (0)");
     add(panelErrors, errorsTabIndex);
-    errorsWindow =
-        new FpgaCommanderListWindow("FPGACommander: Errors", Color.RED, true, errorsList);
-    errorsWindow.addWindowListener(this);
-    errorsWindow.setSize(new Dimension(740, 400));
-    errorsWindow.getListObject().addMouseListener(this);
 
     /* finally we define the console window */
     consoleMessages = new ArrayList<>();
@@ -360,36 +350,48 @@ public class FpgaReportTabbedPane extends JTabbedPane
         if (getComponentCount() > 0) {
           if (getSelectedComponent().equals(panelInfos)) {
             if (infoWindow != null) {
+              infoWindow.toFront();
               infoWindow.setVisible(true);
               updateInfoWindow();
             } else {
-              infoWindow = new FpgaCommanderTextWindow("FPGACommander: Infos", Color.GRAY, true);
-              infoWindow.setVisible(true);
+              infoWindow = new FpgaCommanderTextWindow("FPGACommander: Infos", Color.GRAY, true, this);
               updateInfoWindow();
               infoWindow.addWindowListener(this);
             }
             remove(getSelectedIndex());
           } else if (getSelectedComponent().equals(panelConsole)) {
             if (consoleWindow != null) {
+              consoleWindow.toFront();
               consoleWindow.setVisible(true);
               updateConsoleWindow();
             } else {
               consoleWindow =
-                  new FpgaCommanderTextWindow("FPGACommander: Console", Color.LIGHT_GRAY, false);
-              consoleWindow.setVisible(true);
+                  new FpgaCommanderTextWindow("FPGACommander: Console", Color.LIGHT_GRAY, false, this);
               updateConsoleWindow();
               consoleWindow.addWindowListener(this);
             }
             remove(getSelectedIndex());
           } else if (getSelectedComponent().equals(panelWarnings)) {
             if (warningsWindow != null) {
+              warningsWindow.toFront();
               warningsWindow.setVisible(true);
               remove(getSelectedIndex());
+            } else {
+                warningsWindow =
+                    new FpgaCommanderListWindow("FPGACommander: Warnings", Color.ORANGE, true, warningsList, this);
+                warningsWindow.addWindowListener(this);
+                warningsWindow.getListObject().addMouseListener(this);
             }
           } else if (getSelectedComponent().equals(panelErrors)) {
             if (errorsWindow != null) {
+              errorsWindow.toFront();
               errorsWindow.setVisible(true);
               remove(getSelectedIndex());
+            } else {
+              errorsWindow =
+                  new FpgaCommanderListWindow("FPGACommander: Errors", Color.RED, true, errorsList, this);
+              errorsWindow.addWindowListener(this);
+              errorsWindow.getListObject().addMouseListener(this);
             }
           }
         }

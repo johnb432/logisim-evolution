@@ -30,11 +30,11 @@ class WindowMenuItem extends JRadioButtonMenuItem {
     if ((frameState & Frame.ICONIFIED) != 0) {
       frame.setExtendedState(frameState & ~Frame.ICONIFIED);
     }
-    frame.setVisible(true);
     frame.toFront();
+    frame.setVisible(true);
   }
 
   public JFrame getJFrame() {
-    return manager.getJFrame(true, null);
+    return manager.getJFrame(true, java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow());
   }
 }
