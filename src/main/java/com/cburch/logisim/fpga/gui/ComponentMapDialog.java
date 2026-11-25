@@ -272,7 +272,7 @@ public class ComponentMapDialog
     panel.setVisible(false);
     mappableComponents.save();
     OptionPane.showMessageDialog(
-        null, S.get("BoarMapFileSaved"), "", OptionPane.INFORMATION_MESSAGE);
+        panel, S.get("BoardMapFileSaved"), "", OptionPane.INFORMATION_MESSAGE);
     panel.setVisible(true);
   }
 
