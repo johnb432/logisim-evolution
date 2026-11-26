@@ -23,8 +23,6 @@ import java.awt.GridLayout;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import javax.swing.JComponent;
 import javax.swing.JList;
 import javax.swing.JPanel;
@@ -344,57 +342,53 @@ public class FpgaReportTabbedPane extends JTabbedPane
   /* Here the mouse events are handled */
   @Override
   public void mousePressed(MouseEvent e) {
-    if (e.getClickCount() > 1) {
-
-      if (e.getSource().equals(this)) {
-        if (getComponentCount() > 0) {
-          if (getSelectedComponent().equals(panelInfos)) {
-            if (infoWindow != null) {
-              infoWindow.toFront();
-              infoWindow.setVisible(true);
-              updateInfoWindow();
-            } else {
-              infoWindow = new FpgaCommanderTextWindow("FPGACommander: Infos", Color.GRAY, true, this);
-              updateInfoWindow();
-              infoWindow.addWindowListener(this);
-            }
-            remove(getSelectedIndex());
-          } else if (getSelectedComponent().equals(panelConsole)) {
-            if (consoleWindow != null) {
-              consoleWindow.toFront();
-              consoleWindow.setVisible(true);
-              updateConsoleWindow();
-            } else {
-              consoleWindow =
-                  new FpgaCommanderTextWindow("FPGACommander: Console", Color.LIGHT_GRAY, false, this);
-              updateConsoleWindow();
-              consoleWindow.addWindowListener(this);
-            }
-            remove(getSelectedIndex());
-          } else if (getSelectedComponent().equals(panelWarnings)) {
-            if (warningsWindow != null) {
-              warningsWindow.toFront();
-              warningsWindow.setVisible(true);
-              remove(getSelectedIndex());
-            } else {
-                warningsWindow =
-                    new FpgaCommanderListWindow("FPGACommander: Warnings", Color.ORANGE, true, warningsList, this);
-                warningsWindow.addWindowListener(this);
-                warningsWindow.getListObject().addMouseListener(this);
-            }
-          } else if (getSelectedComponent().equals(panelErrors)) {
-            if (errorsWindow != null) {
-              errorsWindow.toFront();
-              errorsWindow.setVisible(true);
-              remove(getSelectedIndex());
-            } else {
-              errorsWindow =
-                  new FpgaCommanderListWindow("FPGACommander: Errors", Color.RED, true, errorsList, this);
-              errorsWindow.addWindowListener(this);
-              errorsWindow.getListObject().addMouseListener(this);
-            }
-          }
+    if (e.getClickCount() > 1 && e.getSource().equals(this) && getTabCount() > 0) {
+      final var currComp = getSelectedComponent();
+      if (currComp.equals(panelInfos)) {
+        if (infoWindow != null) {
+          infoWindow.toFront();
+          infoWindow.setVisible(true);
+          updateInfoWindow();
+        } else {
+          infoWindow = new FpgaCommanderTextWindow("FPGACommander: Infos", Color.BLACK, true, this);
+          updateInfoWindow();
+          infoWindow.addWindowListener(this);
         }
+        remove(currComp);
+      } else if (currComp.equals(panelConsole)) {
+        if (consoleWindow != null) {
+          consoleWindow.toFront();
+          consoleWindow.setVisible(true);
+          updateConsoleWindow();
+        } else {
+          consoleWindow =
+              new FpgaCommanderTextWindow("FPGACommander: Console", Color.BLACK, false, this);
+          updateConsoleWindow();
+          consoleWindow.addWindowListener(this);
+        }
+        remove(currComp);
+      } else if (currComp.equals(panelWarnings)) {
+        if (warningsWindow != null) {
+          warningsWindow.toFront();
+          warningsWindow.setVisible(true);
+        } else {
+          warningsWindow =
+              new FpgaCommanderListWindow("FPGACommander: Warnings", Color.ORANGE, true, warningsList, this);
+          warningsWindow.addWindowListener(this);
+          warningsWindow.getListObject().addMouseListener(this);
+        }
+        remove(currComp);
+      } else if (currComp.equals(panelErrors)) {
+        if (errorsWindow != null) {
+          errorsWindow.toFront();
+          errorsWindow.setVisible(true);
+        } else {
+          errorsWindow =
+              new FpgaCommanderListWindow("FPGACommander: Errors", Color.RED, true, errorsList, this);
+          errorsWindow.addWindowListener(this);
+          errorsWindow.getListObject().addMouseListener(this);
+        }
+        remove(currComp);
       }
     }
   }
@@ -426,33 +420,35 @@ public class FpgaReportTabbedPane extends JTabbedPane
     }
   }
 
+  private void restore(Component panel, String title, int wanted) {
+    if (indexOfComponent(panel) >= 0) return; // already a tab (double close)
+    final var idx = Math.max(0, Math.min(wanted, getTabCount()));
+    insertTab(title, null, panel, null, idx);
+    setSelectedIndex(idx);
+  }
+
+  private int before(Component... cs) {
+    for (final var c : cs) {
+      final var i = indexOfComponent(c); // -1 if not a tab
+      if (i >= 0) return i;
+    }
+    return getTabCount();
+  }
+
   @Override
   public void windowClosing(WindowEvent e) {
-    if (e.getSource().equals(infoWindow)) {
-      add(panelInfos, infoTabIndex);
+    final var src = e.getSource();
+    if (src.equals(infoWindow)) {
+      restore(panelInfos, "Info", infoTabIndex);
       updateInfoTab();
-    }
-    if (e.getSource().equals(consoleWindow)) {
-      add(panelConsole, getComponentCount());
+    } else if (src.equals(consoleWindow)) {
+      restore(panelConsole, "Console", getTabCount());
       updateConsoleTab();
-    }
-    if (e.getSource().equals(warningsWindow)) {
-      var idx = getComponentCount();
-      HashSet<Component> comps = new HashSet<>(Arrays.asList(getComponents()));
-      if (comps.contains(panelConsole)) idx = indexOfComponent(panelConsole);
-      if (comps.contains(panelErrors)) idx = indexOfComponent(panelErrors);
-      add(panelWarnings, idx);
-      setTitleAt(idx, "Warnings (" + warningsList.getCountNr() + ")");
-      setSelectedIndex(idx);
+    } else if (src.equals(warningsWindow)) {
+      restore(panelWarnings, "Warnings (" + warningsList.getCountNr() + ")", before(panelErrors, panelConsole));
       clearDrcTrace();
-    }
-    if (e.getSource().equals(errorsWindow)) {
-      var idx = getComponentCount();
-      final var comps = new HashSet<>(Arrays.asList(getComponents()));
-      if (comps.contains(panelConsole)) idx = indexOfComponent(panelConsole);
-      add(panelErrors, idx);
-      setTitleAt(idx, "Errors (" + errorsList.getCountNr() + ")");
-      setSelectedIndex(idx);
+    } else if (src.equals(errorsWindow)) {
+      restore(panelErrors, "Errors (" + errorsList.getCountNr() + ")", before(panelConsole));
       clearDrcTrace();
     }
   }
