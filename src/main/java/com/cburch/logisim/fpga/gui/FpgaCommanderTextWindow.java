@@ -61,7 +61,7 @@ public class FpgaCommanderTextWindow extends JFrame
     FontSize = textMessages.getFont().getSize();
 
     pack();
-    setLocationRelativeTo(parent);
+    FpgaWindowPlacer.place(this, parent);
     toFront();
     setVisible(true);
   }

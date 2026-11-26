@@ -63,7 +63,9 @@ public class FpgaCommanderListWindow extends JFrame
     this.model = model;
     
     pack();
-    setLocationRelativeTo(parent);
+    FpgaWindowPlacer.place(this, parent);
+    toFront();
+    setVisible(true);
   }
 
   public boolean isActivated() {
