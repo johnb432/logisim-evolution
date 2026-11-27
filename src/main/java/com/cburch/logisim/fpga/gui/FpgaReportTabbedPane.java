@@ -23,6 +23,8 @@ import java.awt.GridLayout;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.JComponent;
 import javax.swing.JList;
 import javax.swing.JPanel;
@@ -30,6 +32,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.text.DefaultCaret;
 
@@ -48,23 +51,24 @@ public class FpgaReportTabbedPane extends JTabbedPane
 
   private final JTextArea textAreaInfo;
   private final JComponent panelInfos;
-  private final ArrayList<String> infoMessages;
-  private FpgaCommanderTextWindow infoWindow;
+  private int infoMessagesCount;
+  private final FpgaCommanderTextWindow infoWindow;
 
   private final JList<Object> warnings;
   private final JComponent panelWarnings;
   private final FpgaCommanderListModel warningsList;
-  private FpgaCommanderListWindow warningsWindow;
+  private final FpgaCommanderListWindow warningsWindow;
 
   private final JList<Object> errors;
   private final JComponent panelErrors;
   private final FpgaCommanderListModel errorsList;
-  private FpgaCommanderListWindow errorsWindow;
+  private final FpgaCommanderListWindow errorsWindow;
 
-  private FpgaCommanderTextWindow consoleWindow;
+  private final FpgaCommanderTextWindow consoleWindow;
   private final JTextArea textAreaConsole;
   private final JComponent panelConsole;
-  private final ArrayList<String> consoleMessages;
+  private final ConcurrentLinkedQueue<String> consoleMessagesQueue = new ConcurrentLinkedQueue<>();
+  private final AtomicBoolean consoleUpdatePending = new AtomicBoolean(false);
 
   private boolean drcTraceActive = false;
   private SimpleDrcContainer activeDrcContainer;
@@ -75,7 +79,7 @@ public class FpgaReportTabbedPane extends JTabbedPane
     super();
     this.myProject = myProject;
     /* first we setup all info for the first tab, the Information window */
-    infoMessages = new ArrayList<>();
+    infoMessagesCount = 0;
     textAreaInfo = new JTextArea(10, 50);
     textAreaInfo.setForeground(UIManager.getColor("TextArea.foreground"));
     textAreaInfo.setBackground(UIManager.getColor("TextArea.background"));
@@ -92,6 +96,8 @@ public class FpgaReportTabbedPane extends JTabbedPane
     panelInfos.add(textMessages);
     panelInfos.setName("Infos (0)");
     add(panelInfos, infoTabIndex);
+    infoWindow = new FpgaCommanderTextWindow("FPGACommander: Infos", Color.BLACK, true);
+    infoWindow.addWindowListener(this);
 
     /* now we setup the Warning window */
     warningsList = new FpgaCommanderListModel(true);
@@ -113,6 +119,9 @@ public class FpgaReportTabbedPane extends JTabbedPane
     panelWarnings.add(textWarnings);
     panelWarnings.setName("Warnings (0)");
     add(panelWarnings, warningsTabIndex);
+    warningsWindow = new FpgaCommanderListWindow("FPGACommander: Warnings", Color.ORANGE, true, warningsList);
+    warningsWindow.addWindowListener(this);
+    warningsWindow.getListObject().addMouseListener(this);
 
     /* here we setup the Error window */
     errorsList = new FpgaCommanderListModel(false);
@@ -134,9 +143,11 @@ public class FpgaReportTabbedPane extends JTabbedPane
     panelErrors.add(textErrors);
     panelErrors.setName("Errors (0)");
     add(panelErrors, errorsTabIndex);
+    errorsWindow = new FpgaCommanderListWindow("FPGACommander: Errors", Color.RED, true, errorsList);
+    errorsWindow.addWindowListener(this);
+    errorsWindow.getListObject().addMouseListener(this);
 
     /* finally we define the console window */
-    consoleMessages = new ArrayList<>();
     textAreaConsole = new JTextArea(10, 50);
     textAreaConsole.setForeground(UIManager.getColor("TextArea.foreground"));
     textAreaConsole.setBackground(UIManager.getColor("TextArea.background"));
@@ -153,54 +164,34 @@ public class FpgaReportTabbedPane extends JTabbedPane
     panelConsole.add(textConsole);
     panelConsole.setName("Console");
     add(panelConsole, consoleTabIndex);
+    consoleWindow = new FpgaCommanderTextWindow("FPGACommander: Console", Color.BLACK, false);
+    consoleWindow.addWindowListener(this);
 
     addMouseListener(this);
     setPreferredSize(new Dimension(700, 20 * fontSize));
   }
 
   private String getAllignmentSpaces(int index) {
-    if (index < 9) {
+    if (index <= 9) {
       return "    " + index;
-    } else if (index < 99) {
+    } else if (index <= 99) {
       return "   " + index;
-    } else if (index < 999) {
+    } else if (index <= 999) {
       return "  " + index;
-    } else if (index < 9999) {
+    } else if (index <= 9999) {
       return " " + index;
     }
     return Integer.toString(index);
   }
 
   public void addInfo(Object message) {
-    int nrOfInfos = infoMessages.size() + 1;
-    infoMessages.add(getAllignmentSpaces(nrOfInfos) + "> " + message.toString() + "\n");
-    if (infoWindow != null) {
-      if (infoWindow.isVisible()) {
-        updateInfoWindow();
-        return;
-      }
-    }
-    updateInfoTab();
-  }
-
-  private void updateInfoWindow() {
-    final var line = new StringBuilder();
-    for (final var mes : infoMessages) {
-      line.append(mes);
-    }
-    infoWindow.set(line.toString(), infoMessages.size());
-  }
-
-  private void updateInfoTab() {
-    final var line = new StringBuilder();
-    for (final var mes : infoMessages) {
-      line.append(mes);
-    }
-    textAreaInfo.setText(line.toString());
+    final var line = getAllignmentSpaces(++infoMessagesCount) + "> " + message.toString() + "\n";
+    infoWindow.append(line, infoMessagesCount);
+    textAreaInfo.append(line);
     final var idx = indexOfComponent(panelInfos);
     if (idx >= 0) {
       setSelectedIndex(idx);
-      setTitleAt(idx, "Infos (" + infoMessages.size() + ")");
+      setTitleAt(idx, "Infos (" + infoMessagesCount + ")");
       panelInfos.revalidate();
       panelInfos.repaint();
     }
@@ -228,39 +219,41 @@ public class FpgaReportTabbedPane extends JTabbedPane
     }
   }
 
-  public void addConsole(String Message) {
-    consoleMessages.add(Message + "\n");
-    if (consoleWindow != null)
-      if (consoleWindow.isVisible()) {
-        updateConsoleWindow();
+  public void addConsole(String message) {
+    consoleMessagesQueue.add(message + "\n");
+
+    if (consoleUpdatePending.compareAndSet(false, true)) {
+        SwingUtilities.invokeLater(this::flushConsoleMessages);
+    }
+  }
+
+  private void flushConsoleMessages() {
+    try {
+      String message;
+      while ((message = consoleMessagesQueue.poll()) != null) {
+        consoleWindow.append(message, 0);
+        textAreaConsole.append(message);
       }
-    updateConsoleTab();
+      textAreaConsole.setCaretPosition(textAreaConsole.getDocument().getLength());
+    } finally {
+      consoleUpdatePending.set(false);
+      if (!consoleMessagesQueue.isEmpty() && consoleUpdatePending.compareAndSet(false, true)) {
+        SwingUtilities.invokeLater(this::flushConsoleMessages);
+      }
+    }
   }
 
-  private void updateConsoleWindow() {
-    final var lines = new StringBuilder();
-    for (final var mes : consoleMessages) {
-      lines.append(mes);
-    }
-    consoleWindow.set(lines.toString(), 0);
-  }
-
-  private void updateConsoleTab() {
-    final var lines = new StringBuilder();
-    for (final var mes : consoleMessages) {
-      lines.append(mes);
-    }
-    textAreaConsole.setText(lines.toString());
+  public void clearConsole() {
+    consoleMessagesQueue.clear();
+    textAreaConsole.setText(null);
+    consoleWindow.clear();
+    // Select the console tab at the same time
     final var idx = indexOfComponent(panelConsole);
     if (idx >= 0) {
       setSelectedIndex(idx);
       panelConsole.revalidate();
       panelConsole.repaint();
     }
-  }
-
-  public void clearConsole() {
-    consoleMessages.clear();
   }
 
   public void clearDrcTrace() {
@@ -274,10 +267,10 @@ public class FpgaReportTabbedPane extends JTabbedPane
   public void clearAllMessages() {
     clearDrcTrace();
     textAreaInfo.setText(null);
-    infoMessages.clear();
+    infoWindow.clear();
+    infoMessagesCount = 0;
     int idx = indexOfComponent(panelInfos);
     if (idx >= 0) {
-      setTitleAt(idx, "Infos (" + infoMessages.size() + ")");
       setSelectedIndex(idx);
     }
     warningsList.clear();
@@ -294,34 +287,27 @@ public class FpgaReportTabbedPane extends JTabbedPane
   }
 
   public void closeOpenWindows() {
-    if (infoWindow != null) {
-      if (infoWindow.isVisible()) {
-        infoWindow.setVisible(false);
-        add(panelInfos, infoTabIndex);
-        updateInfoTab();
-      }
+    if (infoWindow.isVisible()) {
+      infoWindow.setVisible(false);
+      add(panelInfos, infoTabIndex);
+      setTitleAt(infoTabIndex, "Info (" + infoMessagesCount + ")");
     }
-    if (warningsWindow != null) {
-      if (warningsWindow.isVisible()) {
-        warningsWindow.setVisible(false);
-        add(panelWarnings, warningsTabIndex);
-        setTitleAt(warningsTabIndex, "Warnings (" + warningsList.getCountNr() + ")");
-        clearDrcTrace();
-      }
+    if (warningsWindow.isVisible()) {
+      warningsWindow.setVisible(false);
+      add(panelWarnings, warningsTabIndex);
+      setTitleAt(warningsTabIndex, "Warnings (" + warningsList.getCountNr() + ")");
+      clearDrcTrace();
     }
-    if (errorsWindow != null)
-      if (errorsWindow.isVisible()) {
-        errorsWindow.setVisible(false);
-        add(panelErrors, errorsTabIndex);
-        setTitleAt(errorsTabIndex, "Errors (" + errorsList.getCountNr() + ")");
-        clearDrcTrace();
-      }
-    if (consoleWindow != null)
-      if (consoleWindow.isVisible()) {
-        consoleWindow.setVisible(false);
-        add(panelConsole, consoleTabIndex);
-        updateConsoleTab();
-      }
+    if (errorsWindow.isVisible()) {
+      errorsWindow.setVisible(false);
+      add(panelErrors, errorsTabIndex);
+      setTitleAt(errorsTabIndex, "Errors (" + errorsList.getCountNr() + ")");
+      clearDrcTrace();
+    }
+    if (consoleWindow.isVisible()) {
+      consoleWindow.setVisible(false);
+      add(panelConsole, consoleTabIndex);
+    }
   }
 
   private void generateDrcTrace(SimpleDrcContainer dc) {
@@ -345,49 +331,16 @@ public class FpgaReportTabbedPane extends JTabbedPane
     if (e.getClickCount() > 1 && e.getSource().equals(this) && getTabCount() > 0) {
       final var currComp = getSelectedComponent();
       if (currComp.equals(panelInfos)) {
-        if (infoWindow != null) {
-          infoWindow.toFront();
-          infoWindow.setVisible(true);
-          updateInfoWindow();
-        } else {
-          infoWindow = new FpgaCommanderTextWindow("FPGACommander: Infos", Color.BLACK, true, this);
-          updateInfoWindow();
-          infoWindow.addWindowListener(this);
-        }
+        infoWindow.display(this);
         remove(currComp);
       } else if (currComp.equals(panelConsole)) {
-        if (consoleWindow != null) {
-          consoleWindow.toFront();
-          consoleWindow.setVisible(true);
-          updateConsoleWindow();
-        } else {
-          consoleWindow =
-              new FpgaCommanderTextWindow("FPGACommander: Console", Color.BLACK, false, this);
-          updateConsoleWindow();
-          consoleWindow.addWindowListener(this);
-        }
+        consoleWindow.display(this);
         remove(currComp);
       } else if (currComp.equals(panelWarnings)) {
-        if (warningsWindow != null) {
-          warningsWindow.toFront();
-          warningsWindow.setVisible(true);
-        } else {
-          warningsWindow =
-              new FpgaCommanderListWindow("FPGACommander: Warnings", Color.ORANGE, true, warningsList, this);
-          warningsWindow.addWindowListener(this);
-          warningsWindow.getListObject().addMouseListener(this);
-        }
+        warningsWindow.display(this);
         remove(currComp);
       } else if (currComp.equals(panelErrors)) {
-        if (errorsWindow != null) {
-          errorsWindow.toFront();
-          errorsWindow.setVisible(true);
-        } else {
-          errorsWindow =
-              new FpgaCommanderListWindow("FPGACommander: Errors", Color.RED, true, errorsList, this);
-          errorsWindow.addWindowListener(this);
-          errorsWindow.getListObject().addMouseListener(this);
-        }
+        errorsWindow.display(this);
         remove(currComp);
       }
     }
@@ -439,11 +392,9 @@ public class FpgaReportTabbedPane extends JTabbedPane
   public void windowClosing(WindowEvent e) {
     final var src = e.getSource();
     if (src.equals(infoWindow)) {
-      restore(panelInfos, "Info", infoTabIndex);
-      updateInfoTab();
+      restore(panelInfos, "Info (" + infoMessagesCount + ")", infoTabIndex);
     } else if (src.equals(consoleWindow)) {
       restore(panelConsole, "Console", getTabCount());
-      updateConsoleTab();
     } else if (src.equals(warningsWindow)) {
       restore(panelWarnings, "Warnings (" + warningsList.getCountNr() + ")", before(panelErrors, panelConsole));
       clearDrcTrace();

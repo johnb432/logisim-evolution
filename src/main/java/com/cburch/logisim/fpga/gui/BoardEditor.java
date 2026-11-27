@@ -60,7 +60,7 @@ public class BoardEditor implements ActionListener, BaseComponentListenerContrac
     this.menu = menu;
     final var gbc = new GridBagConstraints();
 
-    panel = new JFrame();
+    panel = new JFrame(proj.getFrame().getGraphicsConfiguration());
     panel.setResizable(false);
     panel.addComponentListener(this);
     panel.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);

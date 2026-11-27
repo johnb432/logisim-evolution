@@ -128,15 +128,14 @@ class MenuFile extends Menu implements ActionListener {
     if (src == newi) {
       ProjectActions.doNew(baseProj);
     } else if (src == merge) {
-      ProjectActions.doMerge(baseProj == null ? null : baseProj.getFrame().getCanvas(), baseProj);
+      ProjectActions.doMerge(baseProj == null ? null : baseProj.getFrame(), baseProj);
     } else if (src == open) {
       final var newProj =
           ProjectActions.doOpen(
-              baseProj == null ? null : baseProj.getFrame().getCanvas(), baseProj);
+              baseProj == null ? null : baseProj.getFrame(), baseProj);
       if (newProj != null
           && proj != null
-          && !proj.isFileDirty()
-          && proj.getLogisimFile().getLoader().getMainFile() == null) {
+          && proj.isBlank()) {
         proj.getFrame().dispose();
       }
     } else if (src == close && proj != null) {

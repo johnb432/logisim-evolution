@@ -279,7 +279,7 @@ public class FpgaCommander
     FrequencyPanel.updateFrequencyList(circuitName);
     rebuildBoardSelectionPanel();
 
-    panel = new JFrame();
+    panel = new JFrame(Main.getFrame().getGraphicsConfiguration());
     panel.setResizable(false);
     panel.setAlwaysOnTop(false);
     panel.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);

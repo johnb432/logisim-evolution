@@ -33,14 +33,14 @@ public class FpgaCommanderTextWindow extends JFrame
   private final JTextArea textArea;
   private boolean IsActive = false;
   private final boolean count;
+  private boolean displayed = false;
 
-  public FpgaCommanderTextWindow(String Title, Color fg, boolean count, java.awt.Component parent) {
+  public FpgaCommanderTextWindow(String Title, Color fg, boolean count) {
     super((count) ? Title + " (0)" : Title);
     this.Title = Title;
     setResizable(true);
     setAlwaysOnTop(false);
     setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-    getContentPane().setPreferredSize(new Dimension(parent.getWidth(), 400));
     final var bg = UIManager.getColor("TextArea.background");
     textArea = new JTextArea(25, 80);
     ((DefaultCaret) textArea.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
@@ -59,9 +59,15 @@ public class FpgaCommanderTextWindow extends JFrame
     addWindowListener(this);
     this.count = count;
     FontSize = textMessages.getFont().getSize();
+  }
 
-    pack();
-    FpgaWindowPlacer.place(this, parent);
+  public void display(java.awt.Component parent) {
+    if (!displayed) {
+      getContentPane().setPreferredSize(new Dimension(parent.getWidth(), 400));
+      pack();
+      FpgaWindowPlacer.place(this, parent);
+      displayed = true;
+    }
     toFront();
     setVisible(true);
   }
@@ -77,6 +83,17 @@ public class FpgaCommanderTextWindow extends JFrame
 
   public void set(String line, int LineCount) {
     textArea.setText(line);
+    if (count) setTitle(Title + " (" + LineCount + ")");
+    Rectangle rect = textArea.getBounds();
+    rect.x = 0;
+    rect.y = 0;
+    if (EventQueue.isDispatchThread()) textArea.paintImmediately(rect);
+    else textArea.repaint(rect);
+  }
+
+  public void append(String line, int LineCount) {
+    textArea.append(line);
+    textArea.setCaretPosition(textArea.getDocument().getLength());
     if (count) setTitle(Title + " (" + LineCount + ")");
     Rectangle rect = textArea.getBounds();
     rect.x = 0;

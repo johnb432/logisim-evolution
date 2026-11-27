@@ -33,15 +33,15 @@ public class FpgaCommanderListWindow extends JFrame
   private final boolean count;
   private final FpgaCommanderListModel model;
   private final JScrollPane textMessages;
+  private boolean displayed = false;
 
   public FpgaCommanderListWindow(
-      String Title, Color fg, boolean count, FpgaCommanderListModel model, java.awt.Component parent) {
+      String Title, Color fg, boolean count, FpgaCommanderListModel model) {
     super((count) ? Title + " (" + model.getCountNr() + ")" : Title);
     this.Title = Title;
     setResizable(true);
     setAlwaysOnTop(false);
     setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-    getContentPane().setPreferredSize(new Dimension(parent.getWidth(), 400));
     final var bg = UIManager.getColor("List.background");
 
     textArea.setBackground(bg);
@@ -61,9 +61,15 @@ public class FpgaCommanderListWindow extends JFrame
     addWindowListener(this);
     this.count = count;
     this.model = model;
-    
-    pack();
-    FpgaWindowPlacer.place(this, parent);
+  }
+
+  public void display(java.awt.Component parent) {
+    if (!displayed) {
+      getContentPane().setPreferredSize(new Dimension(parent.getWidth(), 400));
+      pack();
+      FpgaWindowPlacer.place(this, parent);
+      displayed = true;
+    }
     toFront();
     setVisible(true);
   }
