@@ -68,7 +68,29 @@ public class Main {
         SystemThemeWatcher.init();
 
         // Apply global font preference
-        updateGlobalFont(AppPreferences.APP_FONT.get());
+        final var appFont = AppPreferences.APP_FONT.get();
+        if (appFont != null && !appFont.isBlank()) {
+          updateGlobalFont(appFont);
+        } else {
+          final var tooltipFont = UIManager.get("ToolTip.font");
+          if (tooltipFont != null) {
+            UIManager.put("ToolTip.font",
+              ((Font)tooltipFont).deriveFont(Font.BOLD, AppPreferences.getScaled(12))
+            );
+          }
+          final var treeFont = UIManager.get("Tree.font");
+          if (treeFont != null) {
+            UIManager.put("Tree.font",
+              ((Font)treeFont).deriveFont(Font.BOLD, AppPreferences.getScaled(12))
+            );
+          }
+          final var menuItemFont = UIManager.get("MenuItem.acceleratorFont");
+          if (menuItemFont != null) {
+            UIManager.put("MenuItem.acceleratorFont",
+              ((Font)menuItemFont).deriveFont(Font.PLAIN, AppPreferences.getScaled(12))
+            );
+          }
+        }
       }
     } catch (ClassNotFoundException
         | UnsupportedLookAndFeelException
@@ -104,7 +126,8 @@ public class Main {
   public static boolean headless = false;
 
   // FloppyDisk unicode character: https://charbase.com/1f4be-unicode-floppy-disk
-  public static final String DIRTY_MARKER = "\ud83d\udcbe";
+  public static final String DIRTY_MARKER_UNICODE = "💾";
+  public static final String DIRTY_MARKER = "*";
 
   public static boolean hasGui() {
     return !headless;
@@ -151,6 +174,8 @@ public class Main {
     }
 
     UIManager.put("ToolTip.font",
+        new FontUIResource(appFont, AppPreferences.getPreferredFontStyle(appFont), AppPreferences.getScaled(12)));
+    UIManager.put("Tree.font",
         new FontUIResource(appFont, AppPreferences.getPreferredFontStyle(appFont), AppPreferences.getScaled(12)));
     UIManager.put("MenuItem.acceleratorFont",
         new FontUIResource(appFont, AppPreferences.getPreferredFontStyle(appFont), AppPreferences.getScaled(12)));

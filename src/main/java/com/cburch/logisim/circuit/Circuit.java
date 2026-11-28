@@ -961,7 +961,7 @@ public class Circuit {
     final var labelIdentity = labelIdentity();
     for (final var comp : comps) {
       final var attrs = comp.getAttributeSet();
-      if (attrs.containsAttribute(StdAttr.LABEL)) {
+      if (attrs.containsAttribute(StdAttr.LABEL) && !(comp.getFactory() instanceof Tunnel)) {
         final var compLabel = attrs.getValue(StdAttr.LABEL);
         if (CircuitLabelValidator.labelsMatch(label, compLabel, labelIdentity)) {
           attrs.setValue(StdAttr.LABEL, "");
@@ -973,7 +973,7 @@ public class Circuit {
     // and (2) they cannot have a label
     if (changed)
       OptionPane.showMessageDialog(
-          null, "\"" + label + "\" : " + S.get("ComponentLabelCollisionError"));
+          proj.getFrame(), "\"" + label + "\" : " + S.get("ComponentLabelCollisionError"));
   }
 
   public void removeCircuitListener(CircuitListener what) {
