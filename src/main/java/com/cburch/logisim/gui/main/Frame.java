@@ -1070,7 +1070,7 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
           if (appearance != null) {
             appearance.setCircuit(project, project.getCircuitState());
           }
-          viewAttributes(project.getTool());
+          viewCircuitAttributes();
         } else if (event.getData() instanceof HdlModel model) {
           setHdlEditorView(model);
           viewCircuitAttributes();
@@ -1083,10 +1083,12 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
           // for startup
           return;
         }
-        final var oldTool = (Tool) event.getOldData();
-        final var newTool = (Tool) event.getData();
         if (!getEditorView().equals(EDIT_APPEARANCE)) {
+          final var oldTool = (Tool) event.getOldData();
+          final var newTool = (Tool) event.getData();
           viewAttributes(oldTool, newTool, false);
+        } else if (action == ProjectEvent.UNDO_COMPLETE || action == ProjectEvent.REDO_COMPLETE) {
+          viewAttributes(project.getTool(), true);
         }
       }
     }
