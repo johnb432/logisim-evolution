@@ -148,7 +148,7 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
   private Double lastFraction = AppPreferences.WINDOW_RIGHT_SPLIT.get();
   private final RegTabContent regTabContent;
 
-  public Frame(Project project) {
+  public Frame(Project project, int offset) {
     super(project);
     this.project = project;
 
@@ -269,7 +269,7 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
     menuListener.register(mainPanel);
     keyboardToolSelection = KeyboardToolSelection.register(toolbar);
 
-    project.setFrame(this);
+    project.setFrame(this, offset);
     if (project.getTool() == null) {
       project.setTool(project.getOptions().getToolbarData().getFirstTool());
     }
@@ -1009,6 +1009,12 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
       setAttrTableModel(new AttrTableComponentModel(project, circ, comp));
     }
   }
+  
+  @Override
+  public void dispose() {
+    timer.cancel();
+    super.dispose();
+  }
 
   class MyProjectListener implements ProjectListener, LibraryListener, CircuitListener, PropertyChangeListener, ChangeListener {
     public void attributeListChanged(AttributeEvent e) {
@@ -1107,11 +1113,7 @@ public class Frame extends LFrame.MainWindow implements LocaleListener {
 
     @Override
     public void windowClosing(WindowEvent e) {
-      if (confirmClose(S.get("confirmCloseTitle"))) {
-        layoutCanvas.closeCanvas();
-        timer.cancel();
-        Frame.this.dispose();
-      }
+      ProjectActions.doClose(project);
     }
 
     @Override
